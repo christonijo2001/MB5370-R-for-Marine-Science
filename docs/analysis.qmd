@@ -1,0 +1,165 @@
+---
+title: "Workshop 1 – Foundations of Marine Data Science"
+author: "Christo Potteparambil Nijo"
+format:
+  html:
+    embed-resources: true
+    toc: true
+editor: visual
+
+---
+## Workshop 1: Marine Data Analysis
+
+This document presents the data analysis and visualisation activities completed during Workshop 1 of MB5370.
+
+```{r}
+#| label: setup
+#| include: false
+
+# Load the required packages
+library(tidyverse)
+library(palmerpenguins)
+
+# Load the penguins dataset
+data("penguins")
+```
+
+## Dataset Overview
+
+```{r}
+# Display the structure of the Palmer Penguins dataset
+glimpse(penguins)
+
+```
+## Section 1.9.1 – Wrangling and Plotting in Parallel
+
+### Mean Body Mass Summary by Species and Island
+```{r}
+# Calculate mean body mass for each species and island
+
+penguin_mass_summary <- penguins |>
+  group_by(species, island) |>
+  summarise(
+    mean_mass = mean(body_mass_g, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Display the summary table
+
+print(penguin_mass_summary)
+```
+
+### Distribution of Penguin Body Mass by Species and Island
+```{r}
+# Create a boxplot comparing penguin body mass
+# across species and islands
+
+penguins |>
+  ggplot(aes(
+    x = species,
+    y = body_mass_g,
+    fill = island
+  )) +
+  geom_boxplot(na.rm = TRUE) +
+  labs(
+    title = "Distribution of Penguin Body Mass",
+    subtitle = "Comparison across species and islands",
+    x = "Species",
+    y = "Body Mass (g)",
+    fill = "Island"
+  ) +
+  theme_minimal()
+```
+
+## Section 1.9.2 – Piping Directly to Visualisation
+
+### Mean Body Mass by Species and Island
+
+```{r}
+#| label: fig-penguin-body-mass
+#| fig-width: 8
+#| fig-height: 5
+
+# Pipe directly from aggregation to plotting with error bars
+
+mass_compare_plot <- penguins |>
+  group_by(species, island) |>
+  summarise(
+    mean_mass = mean(body_mass_g, na.rm = TRUE),
+    sd_mass = sd(body_mass_g, na.rm = TRUE),
+    n = n(),
+    .groups = "drop"
+  ) |>
+  ggplot(aes(x = species, y = mean_mass, colour = island)) +
+  geom_point(size = 3) +
+  geom_errorbar(
+    aes(
+      ymin = mean_mass - sd_mass,
+      ymax = mean_mass + sd_mass
+    ),
+    width = 0.2
+  ) +
+  labs(
+    title = "Mean Body Mass by Species and Island",
+    subtitle = "Error bars represent standard deviation",
+    y = "Mean Body Mass (g)",
+    x = "Species"
+  ) +
+  theme_minimal()
+
+mass_compare_plot
+```
+
+### Standard Error Challenge
+```{r}
+# Calculate mean body mass, standard deviation,
+# sample size and standard error by species and island
+
+penguin_se_summary <- penguins |>
+  group_by(species, island) |>
+  summarise(
+    mean_mass = mean(body_mass_g, na.rm = TRUE),
+    sd_mass = sd(body_mass_g, na.rm = TRUE),
+    n = sum(!is.na(body_mass_g)),
+    se_mass = sd_mass / sqrt(n),
+    .groups = "drop"
+  )
+
+# Display the summary table
+
+print(penguin_se_summary)
+```
+
+
+```{r}
+# Visualise mean penguin body mass with standard error bars
+
+mass_se_plot <- penguin_se_summary |>
+  ggplot(aes(
+    x = species,
+    y = mean_mass,
+    colour = island
+  )) +
+  geom_point(size = 3) +
+  geom_errorbar(
+    aes(
+      ymin = mean_mass - se_mass,
+      ymax = mean_mass + se_mass
+    ),
+    width = 0.2
+  ) +
+  labs(
+    title = "Mean Body Mass by Species and Island",
+    subtitle = "Error bars represent standard error",
+    y = "Mean Body Mass (g)",
+    x = "Species",
+    colour = "Island"
+  ) +
+  theme_minimal()
+
+# Display the standard error plot
+
+mass_se_plot
+```
+## Interpretation of Results
+The analysis revealed differences in body mass among the three penguin species. Gentoo penguins had the highest mean body mass (5,076 g), followed by Chinstrap and Adelie penguins. Adelie penguins showed relatively small variations in mean body mass across Biscoe, Dream and Torgersen islands. The boxplot demonstrated the distribution and variability of body mass among species and islands. The standard deviation error bars illustrated the variation in body mass among individual penguins, whereas the narrower standard error bars indicated greater precision in estimating the mean body mass. Overall, the results suggest that body mass varies more noticeably between species than between the sampled islands for Adelie penguins. However, further statistical testing is required to determine whether these observed differences are statistically significant.
